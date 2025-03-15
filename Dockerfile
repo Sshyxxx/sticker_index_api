@@ -2,7 +2,6 @@ FROM debian:bullseye-slim
 # 
 FROM python:3.9
 
-
 # 
 WORKDIR /code
 
@@ -16,13 +15,10 @@ RUN apt-get update && \
 
 # 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
-RUN pip install pillow
-RUN pip install pytesseract
-
+RUN pip install pillow pytesseract uvicorn
 
 # 
 COPY ./app /code/app
-
 
 WORKDIR /app
 
