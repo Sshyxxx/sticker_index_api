@@ -1,26 +1,24 @@
-FROM debian:bullseye-slim
-# 
-FROM python:3.9
+FROM python:3.9-slim
 
-# 
-WORKDIR /code
-
-# 
-COPY ./requirements.txt /code/requirements.txt
-
+#
 RUN apt-get update && \
-    apt-get install -y wget gnupg lsb-release ca-certificates && \
-    apt-get install -y tesseract-ocr && \
+    apt-get install -y --no-install-recommends \
+        wget gnupg lsb-release ca-certificates && \
+    apt-get install -y --no-install-recommends \
+        tesseract-ocr && \
     apt-get clean
 
-# 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
-RUN pip install pillow pytesseract uvicorn
+#
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install pillow pytesseract
 
-# 
+#
+COPY ./requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+
+#
 COPY ./app /code/app
 
-WORKDIR /app
-
-# 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+#
+WORKDIR /code/app
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
