@@ -58,4 +58,4 @@ async def upload_image(file: UploadFile = File(...), embed: bool = Query(True, t
     finally:
         file.file.close()
 
-#curl -X POST "http://localhost:80/upload-image/?embed=true" -F "file=@C:\proger\sticker_index_api\image.png
+#curl -X POST "http://localhost:80/upload-image/?embed=false" -F "file=@C:\proger\sticker_index_api\image.png"
