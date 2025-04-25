@@ -29,22 +29,20 @@ def start():
         "Hello world"
     }
 @app.post("/upload-image/")
-async def upload_image(file: UploadFile = File(...), embed: bool = Query(True, title="use embed or not")):
-    if embed:
-        #Sentences we want sentence embeddings for
-        sentences = ['Привет! Как твои дела?',
-                    'А правда, что 42 твое любимое число?']
+async def upload_image(file: UploadFile = File(...)):
+    #Sentences we want sentence embeddings for
+    sentences = ['Привет! Как твои дела?',
+                'А правда, что 42 твое любимое число?']
 
-        #Tokenize sentences
-        encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=24, return_tensors='pt')
+    #Tokenize sentences
+    encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=24, return_tensors='pt')
 
-        #Compute token embeddings
-        with torch.no_grad():
-            model_output = model(**encoded_input)
+    #Compute token embeddings
+    with torch.no_grad():
+        model_output = model(**encoded_input)
 
-        #Perform pooling. In this case, mean pooling
-        sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])        
-        return sentence_embeddings
+    #Perform pooling. In this case, mean pooling
+    sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])        
 
     try:
         with open(f"{file.filename}", "wb") as buffer:
@@ -54,8 +52,8 @@ async def upload_image(file: UploadFile = File(...), embed: bool = Query(True, t
             # Распознаем текст на изображении
             text = pytesseract.image_to_string(img)
 
-        return {"filename":text}
+        return {"recognized_text":text, "embedding": sentence_embeddings}
     finally:
-        file.file.close()
+        file.close()
 
 #curl -X POST "http://localhost:80/upload-image/?embed=false" -F "file=@C:\proger\sticker_index_api\image.png"
