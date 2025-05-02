@@ -4,6 +4,8 @@ import pytesseract
 from PIL import Image
 from transformers import AutoTokenizer, AutoModel
 import torch
+from pydantic import BaseModel
+import os
 
 # Указываем путь до исполняемого файла Tesseract (уже настроено в Docker)
 pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
@@ -23,37 +25,66 @@ app = FastAPI()
 tokenizer = AutoTokenizer.from_pretrained("ai-forever/sbert_large_nlu_ru")
 model = AutoModel.from_pretrained("ai-forever/sbert_large_nlu_ru")
 
+class TextRecognitionResponse(BaseModel):
+    recognized_text: str
+
 @app.get("/hello")
 def start():
     return {
         "Hello world"
     }
-@app.post("/upload-image/")
-async def upload_image(file: UploadFile = File(...)):
-    #Sentences we want sentence embeddings for
-    sentences = ['Привет! Как твои дела?',
-                'А правда, что 42 твое любимое число?']
 
-    #Tokenize sentences
-    encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=24, return_tensors='pt')
-
-    #Compute token embeddings
-    with torch.no_grad():
-        model_output = model(**encoded_input)
-
-    #Perform pooling. In this case, mean pooling
-    sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])        
-
+@app.post("/upload-image/", response_model=TextRecognitionResponse)
+async def upload_image(file: UploadFile = File(...)) -> dict:
+    """
+    Обработчик для загрузки изображения и распознавания текста с использованием Tesseract OCR.
+    
+    :param file: Загруженный файл с изображением
+    :return: Словарь с распознанным текстом
+    """
     try:
-        with open(f"{file.filename}", "wb") as buffer:
+        # Создаем временный файл для хранения загруженного изображения
+        temp_file_path = f"/tmp/{os.path.basename(file.filename)}"
+        with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-            # Открываем изображение
-            img = Image.open(file.filename)  #ваше изображение
-            # Распознаем текст на изображении
-            text = pytesseract.image_to_string(img)
+            
+        # Открываем изображение и распознаём текст
+        img = Image.open(temp_file_path)
+        text = pytesseract.image_to_string(img)
+        
+        # Удаляем временное изображение
+        os.remove(temp_file_path)
+        
+        return {"recognized_text": text.strip()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при обработке изображения: {str(e)}")
 
-        return {"recognized_text":text, "embedding": sentence_embeddings}
-    finally:
-        file.close()
+# @app.post("/upload-image/")
+# async def upload_image(file: UploadFile = File(...)):
+#     #Sentences we want sentence embeddings for
+#     sentences = ['Привет! Как твои дела?',
+#                 'А правда, что 42 твое любимое число?']
+
+#     #Tokenize sentences
+#     encoded_input = tokenizer(sentences, padding=True, truncation=True, max_length=24, return_tensors='pt')
+
+#     #Compute token embeddings
+#     with torch.no_grad():
+#         model_output = model(**encoded_input)
+
+#     #Perform pooling. In this case, mean pooling
+#     sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])        
+
+#     try:
+#         with open(f"{file.filename}", "wb") as buffer:
+#             shutil.copyfileobj(file.file, buffer)
+#             # Открываем изображение
+#             img = Image.open(file.filename)  #ваше изображение
+#             # Распознаем текст на изображении
+#             text = pytesseract.image_to_string(img)
+
+#         return {"recognized_text":text, "embedding": sentence_embeddings}
+#     finally:
+#         file.close()
 
 #curl -X POST "http://localhost:80/upload-image/?embed=false" -F "file=@C:\projects\sticker_index_api\image.png"

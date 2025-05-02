@@ -5,3 +5,4 @@ requests>=2.31.0,<2.33.3
 python-multipart
 transformers
 torch
+pydantic
