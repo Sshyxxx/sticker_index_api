@@ -65,20 +65,12 @@ async def upload_image(file: UploadFile = File(...)) -> dict:
         temp_file_path = f"/tmp/{os.path.basename(file.filename)}"
         with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-<<<<<<< HEAD
-        print(1)    
-        # Открываем изображение и распознаём текст
-        img = Image.open(temp_file_path)
-        text = pytesseract.image_to_string(img)
-        print(2)    
-=======
         logger.info(f"Saved uploaded file to {temp_file_path}")
 
         # Открываем изображение и распознаём текст
         img = Image.open(temp_file_path)
         text = pytesseract.image_to_string(img)
         logger.info(f"Text recognized: {text.strip()}")
->>>>>>> e6a831142ba7e18d2eddfe0b5088bf618f0e14ae
 
         # Удаляем временное изображение
         os.remove(temp_file_path)
@@ -90,13 +82,6 @@ async def upload_image(file: UploadFile = File(...)) -> dict:
         )
         with torch.no_grad():
             model_output = model(**encoded_input)
-<<<<<<< HEAD
-        #Perform pooling. In this case, mean pooling
-        print(3)
-        sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])        
-        print(4)
-        return {"recognized_text": text.strip(),  'embedding': sentence_embeddings}
-=======
         # Perform pooling. In this case, mean pooling
 
         sentence_embeddings = mean_pooling(
@@ -105,7 +90,6 @@ async def upload_image(file: UploadFile = File(...)) -> dict:
         logger.info("Embedding calculated successfully.")
 
         return {"recognized_text": text.strip(), "embedding": sentence_embeddings}
->>>>>>> e6a831142ba7e18d2eddfe0b5088bf618f0e14ae
     except Exception as e:
         logger.error(f"Error processing image: {str(e)}")
         raise HTTPException(
