@@ -83,13 +83,14 @@ async def upload_image(file: UploadFile = File(...)) -> dict:
         with torch.no_grad():
             model_output = model(**encoded_input)
         # Perform pooling. In this case, mean pooling
-
         sentence_embeddings = mean_pooling(
             model_output, encoded_input["attention_mask"]
         )
         logger.info("Embedding calculated successfully.")
 
-        return {"recognized_text": text.strip(), "embedding": sentence_embeddings}
+        return {"recognized_text": text, "embedding": sentence_embeddings}
+
+#        return {"recognized_text": text.strip(), "embedding": sentence_embeddings}
     except Exception as e:
         logger.error(f"Error processing image: {str(e)}")
         raise HTTPException(
