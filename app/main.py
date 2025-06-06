@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import List
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException
 import shutil
@@ -117,12 +118,12 @@ async def text_embedding(text: str) -> dict:
         return {"embedding": sentence_embeddings.tolist()}
 
 @app.post("/search/")
-async def handle_search_request(req: SearchRequest):
+async def handle_search_request(text: str):
     """
     Обработчик маршрута /search/, очищает текст от команды и сохраняет очищенное значение.
     """
     # Извлечение текста после команды /search
-    match = re.match(r"/search\s+(.*)", req.command)
+    match = re.match(r"/search\s+(.*)", text)
     if not match:
         raise HTTPException(status_code=400, detail="Invalid format. Expected '/search <text>'")
 
