@@ -1,4 +1,6 @@
 import logging
+import re
+from typing import List
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException
 import shutil
 import pytesseract
@@ -43,6 +45,7 @@ logger.info("Model loaded successfully.")
 
 class TextRecognitionResponse(BaseModel):
     recognized_text: str
+    embedding: List
 
 
 @app.get("/hello")
@@ -83,15 +86,50 @@ async def upload_image(file: UploadFile = File(...)) -> dict:
         with torch.no_grad():
             model_output = model(**encoded_input)
         # Perform pooling. In this case, mean pooling
-
         sentence_embeddings = mean_pooling(
             model_output, encoded_input["attention_mask"]
         )
         logger.info("Embedding calculated successfully.")
 
-        return {"recognized_text": text.strip(), "embedding": sentence_embeddings}
+        return {"recognized_text": text, "embedding": sentence_embeddings.tolist()}
+
+#        return {"recognized_text": text.strip(), "embedding": sentence_embeddings}
     except Exception as e:
         logger.error(f"Error processing image: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Ошибка при обработке изображения: {str(e)}"
         )
+
+@app.post("/text-embedding/")
+async def text_embedding(text: str) -> dict:
+
+        sentences = text.strip()
+        encoded_input = tokenizer(
+            sentences, padding=True, truncation=True, max_length=24, return_tensors="pt"
+        )
+        with torch.no_grad():
+            model_output = model(**encoded_input)
+        # Perform pooling. In this case, mean pooling
+        sentence_embeddings = mean_pooling(
+            model_output, encoded_input["attention_mask"]
+        )
+        logger.info("Embedding calculated successfully.")
+
+        return {"embedding": sentence_embeddings.tolist()}
+
+@app.post("/search/")
+async def handle_search_request(text: str):
+    """
+    Обработчик маршрута /search/, очищает текст от команды и сохраняет очищенное значение.
+    """
+    # Извлечение текста после команды /search
+    match = re.match(r"/search\s+(.*)", text)
+    if not match:
+        raise HTTPException(status_code=400, detail="Invalid format. Expected '/search <text>'")
+
+    cleaned_text = match.group(1)
+
+    # Сохраняем очищенный текст для дальнейшей обработки
+    indexing_results.append(cleaned_text)
+
+    return {"message": f"Indexed '{cleaned_text}'"}
